@@ -10,11 +10,7 @@ import TextInput from "../components/TextInput/TextInput.jsx";
 import Select from "../components/Select/Select.jsx";
 
 class CartForm extends React.Component {
-  static CURRENCIES = [
-    { value: "usd", label: "USD" },
-    { value: "gbp", label: "GBP" },
-    { value: "cad", label: "CAD" }
-  ];
+  static CURRENCIES = [{ value: "usd", label: "USD" }];
 
   render() {
     return (
@@ -31,7 +27,7 @@ class CartForm extends React.Component {
                 direction="row"
                 alignment={{
                   justifyContent: "space-between",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
               >
                 <Text size={12} color="dark">
@@ -47,7 +43,7 @@ class CartForm extends React.Component {
                 direction="row"
                 alignment={{
                   justifyContent: "space-between",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
               >
                 <Text size={12} color="dark">
@@ -63,7 +59,7 @@ class CartForm extends React.Component {
                 direction="row"
                 alignment={{
                   justifyContent: "space-between",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
               >
                 <Text size={12} color="dark">
@@ -79,7 +75,7 @@ class CartForm extends React.Component {
                 direction="row"
                 alignment={{
                   justifyContent: "space-between",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
               >
                 <Text size={12} color="dark">

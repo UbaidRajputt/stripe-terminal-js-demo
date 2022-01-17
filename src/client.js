@@ -1,13 +1,17 @@
+import axios from "axios";
+
 // Client for the example terminal backend: https://github.com/stripe/example-terminal-backend
 class Client {
   constructor(url) {
-    this.url = url;
+    this.url = "http://localhost:3000/dev";
     this.listLocations = this.listLocations.bind(this);
   }
 
-  createConnectionToken() {
-    const formData = new URLSearchParams();
-    return this.doPost(this.url + "/connection_token", formData);
+  async createConnectionToken() {
+    return await axios.post(
+      this.url +
+        "/terminal/create-connection-token/ff34a59a-6c1d-4445-9f76-e79d61305a1c"
+    );
   }
 
   registerDevice({ label, registrationCode, location }) {
@@ -18,25 +22,27 @@ class Client {
     return this.doPost(this.url + "/register_reader", formData);
   }
 
-  createPaymentIntent({ amount, currency, description, paymentMethodTypes }) {
-    const formData = new URLSearchParams();
-    formData.append("amount", amount);
-    formData.append("currency", currency);
-    formData.append("description", description);
-    paymentMethodTypes.forEach((type) => formData.append(`payment_method_types[]`, type));
-    return this.doPost(this.url + "/create_payment_intent", formData);
+  async createPaymentIntent({ amount }) {
+    return await axios.post(
+      this.url +
+        `/terminal/create_payment_intent/ff34a59a-6c1d-4445-9f76-e79d61305a1c/${amount}`
+    );
   }
 
-  capturePaymentIntent({ paymentIntentId }) {
-    const formData = new URLSearchParams();
-    formData.append("payment_intent_id", paymentIntentId);
-    return this.doPost(this.url + "/capture_payment_intent", formData);
+  async capturePaymentIntent({ paymentIntentId }) {
+    return await axios.post(
+      this.url +
+        `/terminal/capture_payment_intent/ff34a59a-6c1d-4445-9f76-e79d61305a1c/${paymentIntentId}`
+    );
   }
 
   savePaymentMethodToCustomer({ paymentMethodId }) {
     const formData = new URLSearchParams();
     formData.append("payment_method_id", paymentMethodId);
-    return this.doPost(this.url + "/attach_payment_method_to_customer", formData);
+    return this.doPost(
+      this.url + "/attach_payment_method_to_customer",
+      formData
+    );
   }
 
   async listLocations() {

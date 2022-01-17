@@ -1,5 +1,7 @@
 import React, { Component } from "react";
 
+import { loadStripeTerminal } from "@stripe/terminal-js";
+
 import Client from "./client";
 import Logger from "./logger";
 
@@ -47,27 +49,30 @@ class App extends Component {
   runWorkflow = async (workflowName, workflowFn) => {
     console.log(workflowName, workflowFn);
     this.setState({
-      workFlowInProgress: workflowName
+      workFlowInProgress: workflowName,
     });
     try {
       await workflowFn();
     } finally {
       this.setState({
-        workFlowInProgress: null
+        workFlowInProgress: null,
       });
     }
   };
 
   // 1. Stripe Terminal Initialization
-  initializeBackendClientAndTerminal(url) {
+  async initializeBackendClientAndTerminal(url) {
     // 1a. Initialize Client class, which communicates with the example terminal backend
     this.client = new Client(url);
 
+    const StripeTerminal = await loadStripeTerminal();
+
     // 1b. Initialize the StripeTerminal object
-    this.terminal = window.StripeTerminal.create({
+    this.terminal = StripeTerminal.create({
       // 1c. Create a callback that retrieves a new ConnectionToken from the example backend
       onFetchConnectionToken: async () => {
-        let connectionTokenResult = await this.client.createConnectionToken();
+        let secretKey = await this.client.createConnectionToken();
+        let connectionTokenResult = secretKey.data;
         return connectionTokenResult.secret;
       },
       // 1c. (Optional) Create a callback that will be called if the reader unexpectedly disconnects.
@@ -79,7 +84,7 @@ class App extends Component {
           alert("Unexpected disconnect from the reader");
           this.setState({
             connectionStatus: "not_connected",
-            reader: null
+            reader: null,
           });
         }
       ),
@@ -88,80 +93,84 @@ class App extends Component {
       onConnectionStatusChange: Logger.tracedFn(
         "onConnectionStatusChange",
         "https://stripe.com/docs/terminal/js-api-reference#stripeterminal-create",
-        ev => {
+        (ev) => {
           this.setState({ connectionStatus: ev.status, reader: null });
         }
-      )
+      ),
     });
     Logger.watchObject(this.client, "backend", {
       createConnectionToken: {
-        docsUrl: "https://stripe.com/docs/terminal/sdk/js#connection-token"
+        docsUrl: "https://stripe.com/docs/terminal/sdk/js#connection-token",
       },
       registerDevice: {
         docsUrl:
-          "https://stripe.com/docs/terminal/readers/connecting/verifone-p400#register-reader"
+          "https://stripe.com/docs/terminal/readers/connecting/verifone-p400#register-reader",
       },
       createPaymentIntent: {
-        docsUrl: "https://stripe.com/docs/terminal/payments#create"
+        docsUrl: "https://stripe.com/docs/terminal/payments#create",
       },
       capturePaymentIntent: {
-        docsUrl: "https://stripe.com/docs/terminal/payments#capture"
+        docsUrl: "https://stripe.com/docs/terminal/payments#capture",
       },
       savePaymentMethodToCustomer: {
-        docsUrl: "https://stripe.com/docs/terminal/payments/saving-cards"
-      }
+        docsUrl: "https://stripe.com/docs/terminal/payments/saving-cards",
+      },
     });
     Logger.watchObject(this.terminal, "terminal", {
       discoverReaders: {
         docsUrl:
-          "https://stripe.com/docs/terminal/js-api-reference#discover-readers"
+          "https://stripe.com/docs/terminal/js-api-reference#discover-readers",
       },
       connectReader: {
-        docsUrl: "https://stripe.com/docs/terminal/js-api-reference#connect-reader"
+        docsUrl:
+          "https://stripe.com/docs/terminal/js-api-reference#connect-reader",
       },
       disconnectReader: {
-        docsUrl: "https://stripe.com/docs/terminal/js-api-reference#disconnect"
+        docsUrl: "https://stripe.com/docs/terminal/js-api-reference#disconnect",
       },
       setReaderDisplay: {
         docsUrl:
-          "https://stripe.com/docs/terminal/js-api-reference#set-reader-display"
+          "https://stripe.com/docs/terminal/js-api-reference#set-reader-display",
       },
       collectPaymentMethod: {
         docsUrl:
-          "https://stripe.com/docs/terminal/js-api-reference#collect-payment-method"
+          "https://stripe.com/docs/terminal/js-api-reference#collect-payment-method",
       },
       cancelCollectPaymentMethod: {
         docsUrl:
-          "https://stripe.com/docs/terminal/js-api-reference#cancel-collect-payment-method"
+          "https://stripe.com/docs/terminal/js-api-reference#cancel-collect-payment-method",
       },
       processPayment: {
         docsUrl:
-          "https://stripe.com/docs/terminal/js-api-reference#process-payment"
+          "https://stripe.com/docs/terminal/js-api-reference#process-payment",
       },
       readReusableCard: {
         docsUrl:
-          "https://stripe.com/docs/terminal/js-api-reference#read-reusable-card"
+          "https://stripe.com/docs/terminal/js-api-reference#read-reusable-card",
       },
       cancelReadReusableCard: {
         docsUrl:
-          "https://stripe.com/docs/terminal/js-api-reference#cancel-read-reusable-card"
+          "https://stripe.com/docs/terminal/js-api-reference#cancel-read-reusable-card",
       },
       collectRefundPaymentMethod: {
-        docsUrl: "https://stripe.com/docs/terminal/js-api-reference#stripeterminal-collectrefundpaymentmethod"
+        docsUrl:
+          "https://stripe.com/docs/terminal/js-api-reference#stripeterminal-collectrefundpaymentmethod",
       },
       processRefund: {
-        docsUrl: "https://stripe.com/docs/terminal/js-api-reference#stripeterminal-processrefund"
+        docsUrl:
+          "https://stripe.com/docs/terminal/js-api-reference#stripeterminal-processrefund",
       },
       cancelCollectRefundPaymentMethod: {
-        docsUrl: "https://stripe.com/docs/terminal/js-api-reference#stripeterminal-cancelcollectrefundpaymentmethod"
-      }
+        docsUrl:
+          "https://stripe.com/docs/terminal/js-api-reference#stripeterminal-cancelcollectrefundpaymentmethod",
+      },
     });
   }
 
   // 2. Discover and connect to a reader.
   discoverReaders = async () => {
     this.setState({
-      discoveryWasCancelled: false
+      discoveryWasCancelled: false,
     });
 
     // 2a. Discover registered readers to connect to.
@@ -174,7 +183,7 @@ class App extends Component {
       if (this.state.discoveryWasCancelled) return;
 
       this.setState({
-        discoveredReaders: discoverResult.discoveredReaders
+        discoveredReaders: discoverResult.discoveredReaders,
       });
       return discoverResult.discoveredReaders;
     }
@@ -213,7 +222,7 @@ class App extends Component {
     // 2c. Disconnect from the reader, in case the user wants to switch readers.
     await this.terminal.disconnectReader();
     this.setState({
-      reader: null
+      reader: null,
     });
   };
 
@@ -242,13 +251,13 @@ class App extends Component {
           {
             description: this.state.itemDescription,
             amount: this.state.chargeAmount,
-            quantity: 1
-          }
+            quantity: 1,
+          },
         ],
         tax: this.state.taxAmount,
         total: this.state.chargeAmount + this.state.taxAmount,
-        currency: this.state.currency
-      }
+        currency: this.state.currency,
+      },
     });
     console.log("Reader Display Updated!");
     return;
@@ -266,11 +275,10 @@ class App extends Component {
         }
         let createIntentResponse = await this.client.createPaymentIntent({
           amount: this.state.chargeAmount + this.state.taxAmount,
-          currency: this.state.currency,
-          description: "Test Charge",
-          paymentMethodTypes
         });
-        this.pendingPaymentIntentSecret = createIntentResponse.secret;
+        console.log(createIntentResponse);
+        this.pendingPaymentIntentSecret =
+          createIntentResponse.data.client_secret;
       } catch (e) {
         // Suppress backend errors since they will be shown in logs
         return;
@@ -300,12 +308,18 @@ class App extends Component {
         if (confirmResult.paymentIntent.status !== "succeeded") {
           try {
             // Capture the PaymentIntent from your backend client and mark the payment as complete
+
+            console.log(confirmResult.paymentIntent.id, "idddd");
+
             let captureResult = await this.client.capturePaymentIntent({
-              paymentIntentId: confirmResult.paymentIntent.id
+              paymentIntentId: confirmResult.paymentIntent.id,
             });
             this.pendingPaymentIntentSecret = null;
+
+            //here we will have to call our backend api to update order to paid
+
             console.log("Payment Successful!");
-            return captureResult;
+            return captureResult.data;
           } catch (e) {
             // Suppress backend errors since they will be shown in logs
             return;
@@ -337,7 +351,7 @@ class App extends Component {
       try {
         // Then, pass the payment method to your backend client to save it to a customer
         let customer = await this.client.savePaymentMethodToCustomer({
-          paymentMethodId: readResult.payment_method.id
+          paymentMethodId: readResult.payment_method.id,
         });
         console.log("Payment method saved to customer!", customer);
         return customer;
@@ -367,7 +381,7 @@ class App extends Component {
         this.setState({
           cancelableRefund: false,
           refundedAmount: null,
-          refundedChargeID: null
+          refundedChargeID: null,
         });
         return refund;
       }
@@ -381,12 +395,12 @@ class App extends Component {
     this.setState({
       cancelableRefund: false,
       refundedAmount: null,
-      refundedChargeID: null
+      refundedChargeID: null,
     });
   };
 
   // 4. UI Methods
-  onSetBackendURL = url => {
+  onSetBackendURL = (url) => {
     if (url !== null) {
       window.localStorage.setItem("terminal.backendUrl", url);
     } else {
@@ -395,15 +409,15 @@ class App extends Component {
     this.initializeBackendClientAndTerminal(url);
     this.setState({ backendURL: url });
   };
-  updateChargeAmount = amount =>
+  updateChargeAmount = (amount) =>
     this.setState({ chargeAmount: parseInt(amount, 10) });
-  updateItemDescription = description =>
+  updateItemDescription = (description) =>
     this.setState({ itemDescription: description });
-  updateTaxAmount = amount =>
+  updateTaxAmount = (amount) =>
     this.setState({ taxAmount: parseInt(amount || 0, 10) });
-  updateCurrency = currency => this.setState({ currency: currency });
-  updateRefundChargeID = id => this.setState({ refundedChargeID: id });
-  updateRefundAmount = amount => {
+  updateCurrency = (currency) => this.setState({ currency: currency });
+  updateRefundChargeID = (id) => this.setState({ refundedChargeID: id });
+  updateRefundAmount = (amount) => {
     this.setState({ refundedAmount: parseInt(amount, 10) });
   };
 
@@ -414,6 +428,11 @@ class App extends Component {
   onChangeTestCardNumber = (testCardNumber) => {
     this.setState({ testCardNumber });
   };
+
+  componentDidMount() {
+    this.initializeBackendClientAndTerminal("alallala");
+    this.setState({ backendURL: "lalalaal" });
+  }
 
   renderForm() {
     const {
@@ -454,19 +473,19 @@ class App extends Component {
             cancelablePayment={cancelablePayment}
             usingSimulator={usingSimulator}
           />
-          <RefundForm
+          {/* <RefundForm
             onClickProcessRefund={() =>
               this.runWorkflow("collectRefund", this.collectRefundPaymentMethod)
             }
             chargeID={this.state.refundedChargeID}
-            onChangeChargeID={id => this.updateRefundChargeID(id)}
+            onChangeChargeID={(id) => this.updateRefundChargeID(id)}
             refundAmount={this.state.refundedAmount}
-            onChangeRefundAmount={amt => this.updateRefundAmount(amt)}
+            onChangeRefundAmount={(amt) => this.updateRefundAmount(amt)}
             cancelableRefund={this.state.cancelableRefund}
             onClickCancelRefund={() =>
               this.runWorkflow("cancelRefund", this.cancelPendingRefund)
             }
-          />
+          /> */}
           <CartForm
             workFlowDisabled={this.isWorkflowDisabled()}
             onClickUpdateLineItems={() =>
@@ -476,10 +495,10 @@ class App extends Component {
             chargeAmount={this.state.chargeAmount}
             taxAmount={this.state.taxAmount}
             currency={this.state.currency}
-            onChangeCurrency={currency => this.updateCurrency(currency)}
-            onChangeChargeAmount={amount => this.updateChargeAmount(amount)}
-            onChangeTaxAmount={amount => this.updateTaxAmount(amount)}
-            onChangeItemDescription={description =>
+            onChangeCurrency={(currency) => this.updateCurrency(currency)}
+            onChangeChargeAmount={(amount) => this.updateChargeAmount(amount)}
+            onChangeTaxAmount={(amount) => this.updateTaxAmount(amount)}
+            onChangeItemDescription={(description) =>
               this.updateItemDescription(description)
             }
           />
